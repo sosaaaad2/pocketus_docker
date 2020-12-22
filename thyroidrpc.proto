@@ -1,0 +1,149 @@
+syntax = "proto3";
+import "google/protobuf/any.proto";
+
+package thyroidaiproto;
+
+service ThyroidaiGrpc {
+    //! image output
+    rpc ImageOutput(DetectRequestNew) returns (ProtoResponse) {}
+    //! detection task
+    rpc Detect (DetectRequest) returns (ProtoResponse) {}
+    //! classification and tirads task
+    rpc ClassifyAndTirads (CTRequest) returns (ProtoResponse) {}
+    //! delete nodule in the image
+    rpc DeleteNodule (DeleteNoduleRequest) returns (ProtoResponse) {}
+    //! generate report
+    rpc GenerateReport (UserID) returns (ProtoResponse) {}
+    //! modify report
+    rpc ModifyReport (ModifyCT) returns (ProtoResponse) {}
+    //! read report
+    rpc ReadReport (UserID) returns (ProtoResponse) {}
+}
+
+// image output
+message ImageRequest{
+    bytes image = 1;
+    repeated bytes msg = 2;
+}
+
+// single channel uint8 image
+message DetectRequestNew {
+    bool isRaw = 1;
+    bytes image = 2;
+    int32 height = 3;
+    int32 width = 4;
+    int32 ppc = 5;    // pixels per cm
+}
+
+// common response
+message ProtoResponse {
+    int32 code = 1;    // error code
+    string msg = 2;    // error message
+    google.protobuf.Any data = 3;
+}
+
+// single channel uint8 image
+message DetectRequest {
+    bool isRaw = 1;
+    bytes image = 2;
+    int32 height = 3;
+    int32 width = 4;
+}
+
+message NoduleWithNum {
+    int32 n = 1;   // nodule index
+    int32 m = 2;   // old nodule index, 0 means do not need rename!
+    int32 x = 3;   // horizontal axis
+    int32 y = 4;   // vertical axis
+    int32 w = 5;   // roi width
+    int32 h = 6;   // roi height
+    int32 s = 7;   // 0: 横切，1，纵切
+    int32 pos = 8; // 九宫格坐标
+}
+
+// detection output
+message Nodules {
+    int32 nums = 1;
+    repeated NoduleWithNum nodule  = 2;
+}
+
+// CTRequest
+message CTRequest {
+    string uid = 1;       // user id
+    uint64 scanID = 2;    // scan id for the user
+    uint64 imageID = 3;   // image id
+    bool isRaw = 4;
+    bytes image = 5;
+    int32 height = 6;
+    int32 width = 7;
+    int32 ppc = 8;    // pixels per cm
+    repeated NoduleWithNum nodule  = 9;
+}
+
+// second detection status
+message DetectionStatus {
+    int32 n = 1;      // nodule index
+    int32 status = 2; // 0: ok,  1: not detect anything,
+    // so the classification and tirads is null!
+}
+
+// classification
+message BenignAndProb {
+    int32 benign = 1;
+    float prob = 2;
+}
+
+// tirads output
+message OneTiradsRes {
+    int32 constitute = 1;
+    int32 comet = 2;
+    int32 shape = 3;
+    float ratio = 4;
+    repeated float hxlen = 5;
+    float vxlen = 6;
+    int32 echo_level = 7;
+    int32 border_clear = 8;
+    repeated int32 calcification = 9;
+}
+
+// classification and tirads output
+message CTResponse {
+    int32 nums = 1;
+    repeated DetectionStatus ds = 2;
+    repeated NoduleWithNum nodule = 3;
+    repeated BenignAndProb bp = 4;
+    repeated OneTiradsRes tirads = 5;
+    repeated bool modify_flag  = 6;
+}
+
+// delete nodule request
+message DeleteNoduleRequest {
+    string uid = 1;               // user id
+    uint64 scanID = 2;            // scan id for the user
+    uint64 imageID = 3;           // image id
+    repeated int32 noduleID = 4;  // nodule indexes to be delete
+}
+
+// user id
+message UserID {
+    string uid = 1;     // user id
+    uint64 scanID = 2;  // scan id for the user
+}
+
+// only allow modify one nodule per request
+message ModifyCT {
+    string uid = 1;     // user id
+    uint64 scanID = 2;  // scan id for the user
+    int32 nindex = 3;   // nodule index
+    repeated int32 benign = 4;
+    repeated float prob = 5;
+    repeated int32 constitute = 6;
+    repeated int32 comet = 7;
+    repeated int32 shape = 8;
+    repeated float ratio = 9;
+    repeated float hxlen = 10;
+    repeated float vxlen = 11;
+    repeated int32 echo_level = 12;
+    repeated int32 border_clear = 13;
+    repeated int32 calcification = 14;
+}
